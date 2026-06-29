@@ -1,4 +1,6 @@
 import os
+import re
+import mimetypes
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,9 +13,9 @@ from api.services import execute_download_job, get_all_jobs, get_job_by_id, crea
 logger = get_logger("API_Main")
 
 app = FastAPI(
-    title="YouTube HD Downloader API",
-    description="Nhập một URL YouTube bất kỳ → tải và trả về video chất lượng cao nhất của clip đó.",
-    version="2.0.0",
+    title="downytb — Media Downloader API",
+    description="Nhập một URL bất kỳ (YouTube, TikTok, Instagram, Twitter/X...) → tải video/audio ở chất lượng mong muốn.",
+    version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -36,11 +38,15 @@ async def serve_dashboard():
 
 @app.post("/api/v1/download", tags=["Download Jobs"])
 async def start_download_job(req: DownloadRequest, background_tasks: BackgroundTasks):
-    if not req.url or ("youtube.com" not in req.url and "youtu.be" not in req.url):
-        raise HTTPException(status_code=400, detail="URL không hợp lệ. Vui lòng nhập đường dẫn YouTube.")
+    if not req.url or not re.match(r"^https?://", req.url.strip()):
+        raise HTTPException(status_code=400, detail="URL không hợp lệ. Vui lòng nhập một đường dẫn http(s).")
 
-    job_id = create_job(req.url)
-    background_tasks.add_task(execute_download_job, job_id, req.url)
+    options = {
+        "mode": req.mode,
+        "quality": req.quality,
+    }
+    job_id = create_job(req.url.strip(), options)
+    background_tasks.add_task(execute_download_job, job_id, req.url.strip(), options)
     return JSONResponse({"job_id": job_id, "status": "pending", "message": "Tiến trình tải ngầm đã được kích hoạt."})
 
 @app.get("/api/v1/jobs", response_model=JobsListResponse, tags=["Download Jobs"])
@@ -65,7 +71,8 @@ async def download_job_file(job_id: str):
     filepath = job["filepath"]
     if not os.path.exists(filepath):
         raise HTTPException(status_code=410, detail="File kết quả không còn tồn tại trên máy chủ.")
-    return FileResponse(filepath, filename=job.get("filename") or os.path.basename(filepath), media_type="video/mp4")
+    media_type = mimetypes.guess_type(filepath)[0] or "application/octet-stream"
+    return FileResponse(filepath, filename=job.get("filename") or os.path.basename(filepath), media_type=media_type)
 
 @app.get("/api/v1/system/status", response_model=SystemStatusResponse, tags=["System"])
 async def check_system_status():
@@ -73,7 +80,7 @@ async def check_system_status():
         "status": "online",
         "output_dir": str(OUTPUT_DIR),
         "output_writable": os.access(OUTPUT_DIR, os.W_OK),
-        "version": "2.0.0"
+        "version": "3.0.0"
     }
 
 if __name__ == "__main__":

@@ -28,15 +28,23 @@ for _d in (TEMPLATES_DIR, OUTPUT_DIR, TEMP_DIR):
 DENO_PATH = os.getenv("DENO_PATH", "").strip()
 
 
-def get_ydl_opts(custom_opts: dict = None) -> dict:
-    """Trả về cấu hình yt-dlp lấy video chất lượng cao nhất cho một URL YouTube bất kỳ.
+def build_ydl_opts(
+    mode: str = "video",
+    quality: str = "max",
+    dest_dir=None,
+    custom_opts: dict = None,
+) -> dict:
+    """Dịch lựa chọn sang cấu hình yt-dlp. Tập trung MP4.
 
-    Deno JS runtime chỉ được bật khi DENO_PATH được cấu hình và tồn tại, nên tool
-    chạy được trên mọi máy kể cả khi chưa cài Deno.
+    - mode: 'video' = MP4 (video+audio gộp) | 'audio' = trích MP3
+    - quality: '144'..'2160' giới hạn độ phân giải tối đa, hoặc 'max' = cao nhất
+
+    Deno JS runtime chỉ bật khi DENO_PATH hợp lệ, nên chạy được cả khi chưa cài Deno.
     """
-    base_opts = {
+    home_dir = dest_dir if dest_dir is not None else OUTPUT_DIR
+    opts = {
         'paths': {
-            'home': str(OUTPUT_DIR),
+            'home': str(home_dir),
             'temp': str(TEMP_DIR),
         },
         'outtmpl': {
@@ -47,18 +55,35 @@ def get_ydl_opts(custom_opts: dict = None) -> dict:
                 'player_client': ['android', 'ios', 'tv', 'web']
             }
         },
-        'format': 'bestvideo+bestaudio/best',
-        'merge_output_format': 'mp4',
         'ignoreerrors': True,
         'no_warnings': False,
         'quiet': False,
     }
 
+    if mode == "audio":
+        # Trích audio sang MP3 bằng FFmpeg
+        opts['format'] = 'bestaudio/best'
+        opts['postprocessors'] = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '0',  # chất lượng tốt nhất
+        }]
+    else:
+        # video: bestvideo+bestaudio, gộp sang MP4
+        height_filter = "" if quality == "max" else f"[height<={int(quality)}]"
+        opts['format'] = f'bestvideo{height_filter}+bestaudio/best{height_filter}/best'
+        opts['merge_output_format'] = 'mp4'
+
     # Chỉ kích hoạt Deno khi đường dẫn hợp lệ (tránh lỗi trên máy chưa cài Deno)
     if DENO_PATH and Path(DENO_PATH).exists():
-        base_opts['js_runtimes'] = {'deno': {'path': DENO_PATH}}
-        base_opts['remote_components'] = ['ejs:github', 'ejs:npm']
+        opts['js_runtimes'] = {'deno': {'path': DENO_PATH}}
+        opts['remote_components'] = ['ejs:github', 'ejs:npm']
 
     if custom_opts:
-        base_opts.update(custom_opts)
-    return base_opts
+        opts.update(custom_opts)
+    return opts
+
+
+def get_ydl_opts(custom_opts: dict = None) -> dict:
+    """Cấu hình mặc định: MP4 chất lượng cao nhất (tương thích ngược cho CLI)."""
+    return build_ydl_opts(custom_opts=custom_opts)

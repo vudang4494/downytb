@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube HD Downloader Dashboard</title>
+    <title>downytb — Media Downloader</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -191,6 +191,55 @@
             transform: none;
         }
 
+        /* Option selectors (cobalt-style) */
+        .options-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        .opt {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+            min-width: 130px;
+        }
+        .opt-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .opt select {
+            background: rgba(13, 15, 25, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 0.65rem 0.9rem;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+        .opt select:focus { border-color: var(--primary); }
+
+        .download-link {
+            margin-top: 0.5rem;
+            align-self: flex-start;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            padding: 0.5rem 1.1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 8px 16px -8px var(--success);
+            transition: transform 0.2s ease;
+        }
+        .download-link:hover { transform: translateY(-2px); }
+
         /* Spinner */
         .spinner {
             border: 3px solid rgba(255,255,255,0.3);
@@ -310,8 +359,8 @@
     <div class="glow-circle glow-2"></div>
 
     <header>
-        <h1>YouTube HD Downloader</h1>
-        <p>Nhập một URL YouTube bất kỳ để tải video ở chất lượng cao nhất (tự động gộp video + audio sang MP4)</p>
+        <h1>downytb</h1>
+        <p>Dán link → chọn định dạng → nhận file. Hỗ trợ YouTube, TikTok, Instagram, Twitter/X, Vimeo, SoundCloud... (1800+ site qua yt-dlp).</p>
     </header>
 
     <div class="container">
@@ -319,14 +368,36 @@
             <div class="form-group">
                 <label for="urlInput">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    Nhập đường dẫn YouTube (Video / Playlist)
+                    Dán đường dẫn media
                 </label>
                 <div class="input-wrapper">
-                    <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+                    <input type="text" id="urlInput" placeholder="https://..." autocomplete="off">
                     <button id="submitBtn" onclick="submitUrl()">
                         <span id="btnText">Tải Ngay</span>
                         <div class="spinner" id="btnSpinner"></div>
                     </button>
+                </div>
+
+                <div class="options-row">
+                    <div class="opt">
+                        <span class="opt-label">Chế độ</span>
+                        <select id="modeSelect" onchange="onModeChange()">
+                            <option value="video">🎬 Video (MP4)</option>
+                            <option value="audio">🎵 Audio (MP3)</option>
+                        </select>
+                    </div>
+                    <div class="opt" id="qualityOpt">
+                        <span class="opt-label">Chất lượng</span>
+                        <select id="qualitySelect">
+                            <option value="max">Cao nhất</option>
+                            <option value="2160">2160p (4K)</option>
+                            <option value="1440">1440p (2K)</option>
+                            <option value="1080">1080p</option>
+                            <option value="720">720p</option>
+                            <option value="480">480p</option>
+                            <option value="360">360p</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -347,6 +418,12 @@
     <script>
         const API_BASE = window.location.origin;
 
+        // Audio (MP3) thì không cần chọn chất lượng video
+        function onModeChange() {
+            const isAudio = document.getElementById('modeSelect').value === 'audio';
+            document.getElementById('qualityOpt').style.display = isAudio ? 'none' : '';
+        }
+
         async function submitUrl() {
             const input = document.getElementById('urlInput');
             const btn = document.getElementById('submitBtn');
@@ -355,9 +432,15 @@
             const url = input.value.trim();
 
             if (!url) {
-                alert('Vui lòng nhập đường dẫn YouTube!');
+                alert('Vui lòng dán đường dẫn media!');
                 return;
             }
+
+            const payload = {
+                url,
+                mode: document.getElementById('modeSelect').value,
+                quality: document.getElementById('qualitySelect').value,
+            };
 
             // UI Loading state
             input.disabled = true;
@@ -369,7 +452,7 @@
                 const res = await fetch(`${API_BASE}/api/v1/download`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
+                    body: JSON.stringify(payload)
                 });
                 
                 const data = await res.json();
@@ -411,16 +494,22 @@
 
                 // Reverse to show newest first
                 const jobs = [...data.jobs].reverse();
-                container.innerHTML = jobs.map(job => `
+                container.innerHTML = jobs.map(job => {
+                    const dl = (job.status === 'completed' && job.filename)
+                        ? `<a class="download-link" href="${API_BASE}/api/v1/jobs/${encodeURIComponent(job.id)}/file" download>⬇ Tải file: ${escapeHtml(job.filename)}</a>`
+                        : '';
+                    const tags = [job.mode, job.quality].filter(Boolean).map(escapeHtml).join(' · ');
+                    return `
                     <div class="job-card">
                         <div class="job-top">
-                            <span class="job-id">${escapeHtml(job.id).toUpperCase()}</span>
+                            <span class="job-id">${escapeHtml(job.id).toUpperCase()}${tags ? ' · ' + tags : ''}</span>
                             <span class="job-badge status-${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
                         </div>
                         <div class="job-url">${escapeHtml(job.url)}</div>
                         <div class="job-message">${escapeHtml(job.message)}</div>
-                    </div>
-                `).join('');
+                        ${dl}
+                    </div>`;
+                }).join('');
             } catch (err) {
                 console.error('Lỗi khi tải danh sách tiến trình:', err);
             }
