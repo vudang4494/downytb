@@ -8,9 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load file .env nếu có
 load_dotenv(BASE_DIR / ".env")
 
-# Các thư mục lưu trữ nội bộ
-DATA_DIR = BASE_DIR / "data"
+# Templates (Web Dashboard)
 TEMPLATES_DIR = BASE_DIR / "templates"
+DASHBOARD_TEMPLATE_FILE = TEMPLATES_DIR / "dashboard.html"
 
 # Thư mục lưu video tải về (cấu hình qua biến môi trường OUTPUT_DIR, mặc định ./downloads).
 # Dùng cho bất kỳ URL YouTube nào — không phụ thuộc dịch vụ lưu trữ cụ thể.
@@ -20,13 +20,8 @@ OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", str(BASE_DIR / "downloads"))).expandus
 TEMP_DIR = OUTPUT_DIR / ".tmp"
 
 # Đảm bảo các thư mục tồn tại
-for _d in (DATA_DIR, TEMPLATES_DIR, OUTPUT_DIR, TEMP_DIR):
+for _d in (TEMPLATES_DIR, OUTPUT_DIR, TEMP_DIR):
     _d.mkdir(parents=True, exist_ok=True)
-
-# File dữ liệu
-ARCHIVE_FILE = DATA_DIR / "archive.txt"
-VERIFIED_MAX_QUALITY_FILE = DATA_DIR / "verified_max_quality.txt"
-DASHBOARD_TEMPLATE_FILE = TEMPLATES_DIR / "dashboard.html"
 
 # (Tùy chọn) Deno JS Runtime — giúp giải mã JS của YouTube ổn định hơn cho một số video.
 # Để trống nếu máy không cài Deno; tính năng vẫn chạy bình thường mà không cần Deno.
@@ -54,7 +49,6 @@ def get_ydl_opts(custom_opts: dict = None) -> dict:
         },
         'format': 'bestvideo+bestaudio/best',
         'merge_output_format': 'mp4',
-        'download_archive': str(ARCHIVE_FILE),
         'ignoreerrors': True,
         'no_warnings': False,
         'quiet': False,

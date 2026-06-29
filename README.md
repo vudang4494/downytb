@@ -20,7 +20,7 @@
 - **📥 API trả về file**: Sau khi job hoàn tất, gọi `GET /api/v1/jobs/{job_id}/file` để tải thẳng file MP4 về.
 - **💎 Web Dashboard**: Giao diện Dark Mode theo dõi tiến trình tải real-time (tự động cập nhật mỗi 3 giây).
 - **🧱 Cấu trúc rõ ràng & cấu hình qua `.env`**: Tách lớp API / Core / Scripts; mọi cấu hình (thư mục lưu, Deno, host/port) đều qua biến môi trường.
-- **🛠️ Bộ script CLI kèm theo**: tải hàng loạt, kiểm tra & nâng cấp lên 2K/4K, chuẩn hóa tên file.
+- **🛠️ CLI kèm theo**: tải nhanh một hoặc nhiều URL ngay từ dòng lệnh.
 
 > ℹ️ **Lưu ý sử dụng**: Chỉ tải nội dung bạn có quyền tải, tuân thủ Điều khoản dịch vụ của YouTube và luật bản quyền tại nơi bạn sống.
 
@@ -38,12 +38,9 @@ downytb/
 │   ├── config.py               # Cấu hình tập trung (OUTPUT_DIR, yt-dlp opts, .env)
 │   └── logger.py               # Logging tập trung
 ├── scripts/                    # Công cụ CLI
-│   ├── download_sync.py        # Tải 1 hoặc nhiều URL từ dòng lệnh
-│   ├── verify_quality.py       # Kiểm tra 2K/4K & tải lại bản nét hơn nếu có
-│   └── standardize_filenames.py# Chuẩn hóa tên file: [YYYY-MM-DD] Tiêu đề [ID].mp4
+│   └── download_sync.py        # Tải 1 hoặc nhiều URL từ dòng lệnh
 ├── templates/
 │   └── dashboard.html          # Web Dashboard (Dark Mode)
-├── data/                       # Dữ liệu cục bộ (gitignored): archive, cache chất lượng
 ├── downloads/                  # Thư mục output mặc định (gitignored)
 ├── .env.example                # Mẫu cấu hình môi trường
 ├── requirements.txt            # Dependencies
@@ -56,7 +53,7 @@ downytb/
 
 ### 1. Yêu cầu hệ thống (Prerequisites)
 - **Python 3.10+**
-- **FFmpeg & FFprobe** (để gộp video/audio và kiểm tra độ phân giải).
+- **FFmpeg** (để gộp luồng video + audio sang MP4).
 - **Deno** *(tùy chọn)* — JS runtime giúp giải mã JS YouTube ổn định hơn cho một số video.
 
 ### 2. Cài đặt & cấu hình
@@ -112,14 +109,8 @@ curl -OJ http://localhost:8000/api/v1/jobs/job_xxxxxxxxxxxx/file
 ## ⚙️ Công cụ CLI (tùy chọn)
 
 ```bash
-# Tải 1 hoặc nhiều URL trực tiếp
+# Tải 1 hoặc nhiều URL trực tiếp (chất lượng cao nhất)
 python scripts/download_sync.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-
-# Kiểm tra & nâng cấp lên 2K/4K cho các file đã tải
-python scripts/verify_quality.py
-
-# Chuẩn hóa tên file về dạng [YYYY-MM-DD] Tiêu đề [ID].mp4
-python scripts/standardize_filenames.py
 ```
 
 ---
