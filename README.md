@@ -62,7 +62,7 @@ youtube-downloader-api/
 ### 2. Cài đặt & cấu hình
 
 ```bash
-git clone https://github.com/nhockid235/youtube-downloader-api.git
+git clone https://github.com/vudang4494/youtube-downloader-api.git
 cd youtube-downloader-api
 pip install -r requirements.txt
 
