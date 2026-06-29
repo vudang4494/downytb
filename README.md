@@ -29,7 +29,7 @@
 ## 📂 Cấu trúc mã nguồn (Project Structure)
 
 ```
-youtube-downloader-api/
+downytb/
 ├── api/                        # Khối API Server (FastAPI)
 │   ├── main.py                 # REST endpoints + phục vụ Web Dashboard
 │   ├── schemas.py              # Pydantic models (DownloadRequest, JobStatusResponse...)
@@ -62,8 +62,8 @@ youtube-downloader-api/
 ### 2. Cài đặt & cấu hình
 
 ```bash
-git clone https://github.com/vudang4494/youtube-downloader-api.git
-cd youtube-downloader-api
+git clone https://github.com/vudang4494/downytb.git
+cd downytb
 pip install -r requirements.txt
 
 # Tạo file cấu hình từ mẫu (tùy chọn — đã có giá trị mặc định hợp lý)
