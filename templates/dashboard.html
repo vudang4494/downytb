@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube HD Downloader Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0f19;
+            --card-bg: rgba(23, 27, 44, 0.65);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #a855f7;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 85% 70%, rgba(168, 85, 247, 0.2) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Ambient glowing background shapes */
+        .glow-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .glow-1 {
+            width: 400px;
+            height: 400px;
+            top: 5%;
+            left: 10%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+        .glow-2 {
+            width: 350px;
+            height: 350px;
+            bottom: 10%;
+            right: 15%;
+            background: linear-gradient(135deg, #3b82f6, var(--accent));
+        }
+
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+            z-index: 1;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 20%, var(--text-sub) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-sub);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 1rem;
+            position: relative;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: rgba(13, 15, 25, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 10px 20px -10px var(--accent);
+        }
+
+        button:hover {
+            opacity: 0.95;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -10px var(--accent);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: white;
+            animation: spin 1s ease infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Job Status List */
+        .jobs-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .jobs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .job-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .job-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .job-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-id {
+            font-weight: 700;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .job-url {
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 1.05rem;
+            word-break: break-all;
+        }
+
+        .job-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+        .status-downloading { background: rgba(99, 102, 241, 0.2); color: var(--primary); border: 1px solid var(--primary); animation: pulse 2s infinite; }
+        .status-completed { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .status-failed { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+        .job-message {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.5rem;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 640px) {
+            .input-wrapper { flex-direction: column; }
+            button { width: 100%; justify-content: center; }
+            h1 { font-size: 2.2rem; }
+            .card { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow-circle glow-1"></div>
+    <div class="glow-circle glow-2"></div>
+
+    <header>
+        <h1>YouTube HD Downloader</h1>
+        <p>Nhập một URL YouTube bất kỳ để tải video ở chất lượng cao nhất (tự động gộp video + audio sang MP4)</p>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="form-group">
+                <label for="urlInput">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    Nhập đường dẫn YouTube (Video / Playlist)
+                </label>
+                <div class="input-wrapper">
+                    <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+                    <button id="submitBtn" onclick="submitUrl()">
+                        <span id="btnText">Tải Ngay</span>
+                        <div class="spinner" id="btnSpinner"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="jobsCard">
+            <div class="jobs-header">
+                <span>Tiến trình tải gần đây</span>
+                <button style="padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 12px; background: rgba(255,255,255,0.1); box-shadow: none;" onclick="fetchJobs()">
+                    🔄 Làm mới
+                </button>
+            </div>
+            <div class="jobs-container" id="jobsContainer">
+                <p style="color: var(--text-sub); text-align: center; padding: 2rem 0;">Chưa có yêu cầu tải nào trong phiên này.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function submitUrl() {
+            const input = document.getElementById('urlInput');
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+            const url = input.value.trim();
+
+            if (!url) {
+                alert('Vui lòng nhập đường dẫn YouTube!');
+                return;
+            }
+
+            // UI Loading state
+            input.disabled = true;
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/download`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    alert(data.detail || 'Đã xảy ra lỗi khi gửi yêu cầu!');
+                } else {
+                    input.value = '';
+                    fetchJobs();
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến máy chủ API!');
+                console.error(err);
+            } finally {
+                input.disabled = false;
+                btn.disabled = false;
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Escape nội dung do người dùng nhập (url/message) trước khi chèn vào innerHTML — chống XSS.
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, s => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[s]));
+        }
+
+        async function fetchJobs() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/jobs`);
+                const data = await res.json();
+                const container = document.getElementById('jobsContainer');
+                
+                if (!data.jobs || data.jobs.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-sub); text-align: center; padding: 2rem 0;">Chưa có yêu cầu tải nào trong phiên này.</p>';
+                    return;
+                }
+
+                // Reverse to show newest first
+                const jobs = [...data.jobs].reverse();
+                container.innerHTML = jobs.map(job => `
+                    <div class="job-card">
+                        <div class="job-top">
+                            <span class="job-id">${escapeHtml(job.id).toUpperCase()}</span>
+                            <span class="job-badge status-${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
+                        </div>
+                        <div class="job-url">${escapeHtml(job.url)}</div>
+                        <div class="job-message">${escapeHtml(job.message)}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Lỗi khi tải danh sách tiến trình:', err);
+            }
+        }
+
+        // Tự động cập nhật trạng thái mỗi 3 giây
+        setInterval(fetchJobs, 3000);
+        fetchJobs();
+    </script>
+</body>
+</html>
