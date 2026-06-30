@@ -225,6 +225,44 @@
         }
         .opt select:focus { border-color: var(--primary); }
 
+        /* Hướng dẫn tải link .m3u8 (HLS) */
+        .hls-help {
+            margin-top: 1.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 1rem;
+        }
+        .hls-help summary {
+            cursor: pointer;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            font-weight: 600;
+            list-style: none;
+            user-select: none;
+            transition: color 0.2s ease;
+        }
+        .hls-help summary::-webkit-details-marker { display: none; }
+        .hls-help summary:hover { color: var(--text-main); }
+        .hls-help ol {
+            margin: 0.85rem 0 0;
+            padding-left: 1.2rem;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            line-height: 1.75;
+        }
+        .hls-help code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.1rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #c7d2fe;
+        }
+        .hls-help .hls-note {
+            margin-top: 0.6rem;
+            font-size: 0.82rem;
+            color: var(--text-sub);
+        }
+
         .download-link {
             margin-top: 0.5rem;
             align-self: flex-start;
@@ -345,6 +383,28 @@
             100% { opacity: 1; }
         }
 
+        /* Toggle nguồn: 1 video / cả channel */
+        .src-toggle { display:flex; gap:0.5rem; margin-bottom:1rem; background:rgba(13,15,25,0.5); padding:0.3rem; border-radius:14px; border:1px solid rgba(255,255,255,0.08); }
+        .src-toggle .seg { flex:1; justify-content:center; background:transparent; color:var(--text-sub); box-shadow:none; padding:0.6rem 1rem; font-size:0.95rem; border-radius:10px; }
+        .src-toggle .seg.active { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; }
+        .src-toggle .seg:hover { transform:none; opacity:1; }
+        .opt input[type="number"] { background:rgba(13,15,25,0.7); border:2px solid rgba(255,255,255,0.1); padding:0.65rem 0.9rem; border-radius:12px; color:var(--text-main); font-size:0.95rem; outline:none; width:100%; }
+        .opt input[type="number"]:focus { border-color:var(--primary); }
+
+        /* Channel batch cards */
+        .progress-track { height:8px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden; margin-top:0.5rem; }
+        .progress-fill { height:100%; background:linear-gradient(90deg,var(--primary),var(--accent)); border-radius:9999px; transition:width 0.4s ease; }
+        .chan-stats { display:flex; gap:0.85rem; flex-wrap:wrap; font-size:0.85rem; color:var(--text-sub); margin-top:0.5rem; }
+        .chan-stats b { color:var(--text-main); }
+        .chan-videos { margin-top:0.75rem; display:flex; flex-direction:column; gap:0.4rem; max-height:260px; overflow-y:auto; }
+        .chan-vid { display:flex; justify-content:space-between; align-items:center; gap:0.5rem; font-size:0.85rem; padding:0.4rem 0.6rem; background:rgba(255,255,255,0.03); border-radius:8px; }
+        .chan-vid .vtitle { color:var(--text-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .chan-vid a { color:var(--success); text-decoration:none; font-weight:600; white-space:nowrap; }
+        .expand-btn { align-self:flex-start; margin-top:0.5rem; background:rgba(255,255,255,0.08); box-shadow:none; padding:0.4rem 0.9rem; font-size:0.85rem; border-radius:10px; }
+        .expand-btn:hover { transform:none; }
+        .status-enumerating { background: rgba(245,158,11,0.2); color: var(--warning); border:1px solid var(--warning); animation: pulse 2s infinite; }
+        .status-skipped { background: rgba(148,163,184,0.2); color: var(--text-sub); border:1px solid var(--text-sub); }
+
         @media (max-width: 640px) {
             .input-wrapper { flex-direction: column; }
             button { width: 100%; justify-content: center; }
@@ -360,18 +420,22 @@
 
     <header>
         <h1>downytb</h1>
-        <p>Dán link → chọn định dạng → nhận file. Hỗ trợ YouTube, TikTok, Instagram, Twitter/X, Vimeo, SoundCloud... (1800+ site qua yt-dlp).</p>
+        <p>Dán link trang <b>hoặc link <code style="background:rgba(255,255,255,.08);padding:.1rem .4rem;border-radius:6px;font-family:monospace;color:#c7d2fe">.m3u8</code> (HLS)</b> → chọn định dạng → nhận file. Hỗ trợ YouTube, TikTok, Instagram, Twitter/X, Vimeo, SoundCloud... (1800+ site qua yt-dlp).</p>
     </header>
 
     <div class="container">
         <div class="card">
             <div class="form-group">
+                <div class="src-toggle" id="srcToggle">
+                    <button type="button" class="seg active" data-src="single" onclick="setSource('single')">🎬 1 video / link</button>
+                    <button type="button" class="seg" data-src="channel" onclick="setSource('channel')">📡 Cả channel / playlist</button>
+                </div>
                 <label for="urlInput">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     Dán đường dẫn media
                 </label>
                 <div class="input-wrapper">
-                    <input type="text" id="urlInput" placeholder="https://..." autocomplete="off">
+                    <input type="text" id="urlInput" placeholder="https://...  (link trang hoặc link .m3u8)" autocomplete="off">
                     <button id="submitBtn" onclick="submitUrl()">
                         <span id="btnText">Tải Ngay</span>
                         <div class="spinner" id="btnSpinner"></div>
@@ -398,8 +462,33 @@
                             <option value="360">360p</option>
                         </select>
                     </div>
+                    <div class="opt" id="limitOpt" style="display:none">
+                        <span class="opt-label">Số video (mới nhất)</span>
+                        <input type="number" id="limitInput" min="1" max="500" placeholder="bỏ trống = tối đa">
+                    </div>
                 </div>
+
+                <details class="hls-help">
+                    <summary>📺 Tải từ link <code>.m3u8</code> (HLS) — cách lấy link trên trang lạ</summary>
+                    <ol>
+                        <li>Mở trang có video → nhấn <b>F12</b> (DevTools) → tab <b>Network</b>.</li>
+                        <li>Bấm Play video, gõ <code>m3u8</code> vào ô lọc của tab Network.</li>
+                        <li>Chuột phải request <code>.m3u8</code> → <b>Copy → Copy link address</b>.</li>
+                        <li>Dán vào ô trên rồi bấm <b>Tải Ngay</b> — hệ thống tự tải & ghép mọi segment thành 1 file MP4.</li>
+                    </ol>
+                    <p class="hls-note">💡 Ưu tiên file <code>master.m3u8</code> (playlist tổng) để chọn được chất lượng cao nhất. Link <code>.m3u8</code> thường có hạn dùng ngắn — copy xong nên tải ngay.</p>
+                </details>
             </div>
+        </div>
+
+        <div class="card" id="channelsCard" style="display:none">
+            <div class="jobs-header">
+                <span>📡 Channel / Playlist đang tải</span>
+                <button style="padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 12px; background: rgba(255,255,255,0.1); box-shadow: none;" onclick="fetchChannels()">
+                    🔄 Làm mới
+                </button>
+            </div>
+            <div class="jobs-container" id="channelsContainer"></div>
         </div>
 
         <div class="card" id="jobsCard">
@@ -417,6 +506,21 @@
 
     <script>
         const API_BASE = window.location.origin;
+        let currentSource = 'single';        // 'single' | 'channel'
+        const openManifests = new Set();     // batch_id đang mở danh sách video
+
+        // Chuyển giữa tải 1 video và tải cả channel
+        function setSource(src) {
+            currentSource = src;
+            document.querySelectorAll('#srcToggle .seg').forEach(b =>
+                b.classList.toggle('active', b.dataset.src === src));
+            document.getElementById('limitOpt').style.display = src === 'channel' ? '' : 'none';
+            document.querySelector('.hls-help').style.display = src === 'channel' ? 'none' : '';
+            document.getElementById('urlInput').placeholder = src === 'channel'
+                ? 'https://youtube.com/@tên   hoặc   /playlist?list=...'
+                : 'https://...  (link trang hoặc link .m3u8)';
+            document.getElementById('btnText').textContent = src === 'channel' ? 'Tải Channel' : 'Tải Ngay';
+        }
 
         // Audio (MP3) thì không cần chọn chất lượng video
         function onModeChange() {
@@ -442,6 +546,13 @@
                 quality: document.getElementById('qualitySelect').value,
             };
 
+            let endpoint = '/api/v1/download';
+            if (currentSource === 'channel') {
+                endpoint = '/api/v1/channel';
+                const lim = parseInt(document.getElementById('limitInput').value, 10);
+                if (!isNaN(lim) && lim > 0) payload.limit = lim;
+            }
+
             // UI Loading state
             input.disabled = true;
             btn.disabled = true;
@@ -449,19 +560,19 @@
             spinner.style.display = 'block';
 
             try {
-                const res = await fetch(`${API_BASE}/api/v1/download`, {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (!res.ok) {
                     alert(data.detail || 'Đã xảy ra lỗi khi gửi yêu cầu!');
                 } else {
                     input.value = '';
-                    fetchJobs();
+                    if (currentSource === 'channel') fetchChannels(); else fetchJobs();
                 }
             } catch (err) {
                 alert('Không thể kết nối đến máy chủ API!');
@@ -515,9 +626,81 @@
             }
         }
 
+        // ---- Channel / Playlist batches ----
+        async function fetchChannels() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/channels`);
+                const data = await res.json();
+                const card = document.getElementById('channelsCard');
+                const container = document.getElementById('channelsContainer');
+
+                if (!data.batches || data.batches.length === 0) { card.style.display = 'none'; return; }
+                card.style.display = '';
+                const batches = [...data.batches].reverse();  // mới nhất lên đầu
+                container.innerHTML = batches.map(renderChannelCard).join('');
+
+                // mở lại danh sách video đang bung (vì innerHTML vừa render lại)
+                openManifests.forEach(bid => {
+                    const el = document.getElementById('vids-' + bid);
+                    if (el) { el.style.display = ''; loadManifest(bid, true); }
+                });
+            } catch (err) { console.error('Lỗi tải danh sách channel:', err); }
+        }
+
+        function renderChannelCard(b) {
+            const total = b.total || 0;
+            const finished = (b.done || 0) + (b.skipped || 0);
+            const pct = total ? Math.round(finished / total * 100) : 0;
+            const title = escapeHtml(b.channel_title || b.url);
+            const tags = [b.mode, b.quality].filter(Boolean).map(escapeHtml).join(' · ');
+            return `
+            <div class="job-card">
+                <div class="job-top">
+                    <span class="job-id">${escapeHtml(b.id).toUpperCase()}${tags ? ' · ' + tags : ''}</span>
+                    <span class="job-badge status-${escapeHtml(b.status)}">${escapeHtml(b.status)}</span>
+                </div>
+                <div class="job-url">${title}</div>
+                <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+                <div class="chan-stats">
+                    <span>Tổng <b>${total}</b></span>
+                    <span>✅ Mới <b>${b.done || 0}</b></span>
+                    <span>⏭️ Bỏ qua <b>${b.skipped || 0}</b></span>
+                    <span>❌ Lỗi <b>${b.failed || 0}</b></span>
+                </div>
+                <div class="job-message">${escapeHtml(b.message || '')}</div>
+                ${total ? `<button class="expand-btn" onclick="toggleManifest('${escapeHtml(b.id)}')">📂 Xem ${total} video</button>
+                <div class="chan-videos" id="vids-${escapeHtml(b.id)}" style="display:none"></div>` : ''}
+            </div>`;
+        }
+
+        function toggleManifest(bid) {
+            const el = document.getElementById('vids-' + bid);
+            if (!el) return;
+            if (el.style.display === 'none') { el.style.display = ''; openManifests.add(bid); loadManifest(bid); }
+            else { el.style.display = 'none'; openManifests.delete(bid); }
+        }
+
+        async function loadManifest(bid, silent) {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/channel/${encodeURIComponent(bid)}/manifest`);
+                const b = await res.json();
+                const el = document.getElementById('vids-' + bid);
+                if (!el) return;
+                if (!silent) el.style.display = '';
+                el.innerHTML = (b.videos || []).map(v => {
+                    const ready = (v.status === 'completed' || v.status === 'skipped') && v.filename;
+                    const right = ready
+                        ? `<a href="${API_BASE}/api/v1/channel/${encodeURIComponent(bid)}/videos/${encodeURIComponent(v.id)}/file" download>⬇ Tải</a>`
+                        : `<span class="job-id">${escapeHtml(v.status)}</span>`;
+                    return `<div class="chan-vid"><span class="vtitle">${escapeHtml(v.title || v.id)}</span>${right}</div>`;
+                }).join('') || '<p style="color:var(--text-sub);padding:0.3rem">Đang liệt kê video...</p>';
+            } catch (err) { console.error('Lỗi tải manifest:', err); }
+        }
+
         // Tự động cập nhật trạng thái mỗi 3 giây
-        setInterval(fetchJobs, 3000);
+        setInterval(() => { fetchJobs(); fetchChannels(); }, 3000);
         fetchJobs();
+        fetchChannels();
     </script>
 </body>
 </html>

@@ -27,6 +27,21 @@ for _d in (TEMPLATES_DIR, OUTPUT_DIR, TEMP_DIR):
 # Để trống nếu máy không cài Deno; tính năng vẫn chạy bình thường mà không cần Deno.
 DENO_PATH = os.getenv("DENO_PATH", "").strip()
 
+# Số fragment tải SONG SONG cho stream phân mảnh (HLS .m3u8 / DASH).
+# Tải nhiều segment cùng lúc giúp link m3u8 nhanh gấp nhiều lần so với tải tuần tự.
+CONCURRENT_FRAGMENTS = max(1, int(os.getenv("CONCURRENT_FRAGMENTS", "5")))
+
+# Số VIDEO tải SONG SONG trong một channel/playlist (khác với fragment song song của 1 video).
+# Để thấp để tránh YouTube chặn bot khi tải hàng loạt.
+CHANNEL_CONCURRENCY = max(1, int(os.getenv("CHANNEL_CONCURRENCY", "3")))
+
+# Trần CỨNG số video mỗi batch — áp dụng KỂ CẢ khi client bỏ trống `limit`
+# (tránh lỡ tay tải nguyên một channel khổng lồ làm đầy đĩa / cạn băng thông).
+MAX_CHANNEL_VIDEOS = max(1, int(os.getenv("MAX_CHANNEL_VIDEOS", "500")))
+
+# Số batch channel được chạy ĐỒNG THỜI (admission control -> trả 429 nếu vượt).
+MAX_CONCURRENT_CHANNELS = max(1, int(os.getenv("MAX_CONCURRENT_CHANNELS", "2")))
+
 
 def build_ydl_opts(
     mode: str = "video",
@@ -55,6 +70,10 @@ def build_ydl_opts(
                 'player_client': ['android', 'ios', 'tv', 'web']
             }
         },
+        # Tối ưu cho link m3u8 (HLS) / DASH: tải nhiều fragment song song + retry segment lỗi.
+        'concurrent_fragment_downloads': CONCURRENT_FRAGMENTS,
+        'fragment_retries': 10,
+        'retries': 10,
         'ignoreerrors': True,
         'no_warnings': False,
         'quiet': False,
@@ -87,3 +106,27 @@ def build_ydl_opts(
 def get_ydl_opts(custom_opts: dict = None) -> dict:
     """Cấu hình mặc định: MP4 chất lượng cao nhất (tương thích ngược cho CLI)."""
     return build_ydl_opts(custom_opts=custom_opts)
+
+
+def build_enumerate_opts(limit: int = None) -> dict:
+    """Opts để LIỆT KÊ nhanh video trong channel/playlist mà KHÔNG tải.
+
+    extract_flat='in_playlist' chỉ lấy id/tiêu đề/url của từng video nên chạy
+    gần như tức thì, kể cả channel hàng nghìn video. Dùng cho bước "đếm trước".
+    """
+    opts = {
+        'extract_flat': 'in_playlist',
+        'skip_download': True,
+        'ignoreerrors': True,
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {
+            'youtube': {'player_client': ['android', 'ios', 'tv', 'web']}
+        },
+    }
+    if limit and int(limit) > 0:
+        opts['playlistend'] = int(limit)
+    if DENO_PATH and Path(DENO_PATH).exists():
+        opts['js_runtimes'] = {'deno': {'path': DENO_PATH}}
+        opts['remote_components'] = ['ejs:github', 'ejs:npm']
+    return opts

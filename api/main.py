@@ -7,8 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import DASHBOARD_TEMPLATE_FILE, OUTPUT_DIR
 from core.logger import get_logger
-from api.schemas import DownloadRequest, JobsListResponse, JobStatusResponse, SystemStatusResponse
-from api.services import execute_download_job, get_all_jobs, get_job_by_id, create_job
+from api.schemas import (
+    DownloadRequest, JobsListResponse, JobStatusResponse, SystemStatusResponse,
+    ChannelRequest, ChannelBatchResponse, ChannelManifestResponse, ChannelsListResponse,
+)
+from api.services import (
+    execute_download_job, get_all_jobs, get_job_by_id, create_job,
+    create_channel_job, execute_channel_job, get_channel_by_id, get_channel_video,
+    get_all_channels, channel_slots_available,
+)
 
 logger = get_logger("API_Main")
 
@@ -73,6 +80,56 @@ async def download_job_file(job_id: str):
         raise HTTPException(status_code=410, detail="File kết quả không còn tồn tại trên máy chủ.")
     media_type = mimetypes.guess_type(filepath)[0] or "application/octet-stream"
     return FileResponse(filepath, filename=job.get("filename") or os.path.basename(filepath), media_type=media_type)
+
+@app.post("/api/v1/channel", tags=["Channel / Playlist"])
+async def start_channel_job(req: ChannelRequest, background_tasks: BackgroundTasks):
+    """Nhập URL channel/playlist → tự liệt kê & tải hàng loạt (mỗi job có thư mục channel riêng)."""
+    if not req.url or not re.match(r"^https?://", req.url.strip()):
+        raise HTTPException(status_code=400, detail="URL không hợp lệ. Vui lòng nhập một đường dẫn http(s).")
+    if not channel_slots_available():
+        raise HTTPException(status_code=429, detail="Đang có quá nhiều batch channel chạy. Vui lòng thử lại sau.")
+    options = {"mode": req.mode, "quality": req.quality, "limit": req.limit}
+    batch_id = create_channel_job(req.url.strip(), options)
+    background_tasks.add_task(execute_channel_job, batch_id, req.url.strip(), options)
+    return JSONResponse({"batch_id": batch_id, "status": "pending", "message": "Đã bắt đầu xử lý channel."})
+
+
+@app.get("/api/v1/channels", response_model=ChannelsListResponse, tags=["Channel / Playlist"])
+async def list_channels():
+    return {"batches": get_all_channels()}
+
+
+@app.get("/api/v1/channel/{batch_id}", response_model=ChannelBatchResponse, tags=["Channel / Playlist"])
+async def get_channel_status(batch_id: str):
+    batch = get_channel_by_id(batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy batch: {batch_id}")
+    return batch
+
+
+@app.get("/api/v1/channel/{batch_id}/manifest", response_model=ChannelManifestResponse, tags=["Channel / Playlist"])
+async def get_channel_manifest(batch_id: str):
+    """Trạng thái batch kèm danh sách từng video (id, tiêu đề, trạng thái, tên file)."""
+    batch = get_channel_by_id(batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy batch: {batch_id}")
+    return batch
+
+
+@app.get("/api/v1/channel/{batch_id}/videos/{video_id}/file", tags=["Channel / Playlist"])
+async def download_channel_video_file(batch_id: str, video_id: str):
+    """Tải file của một video cụ thể trong batch channel."""
+    item = get_channel_video(batch_id, video_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Không tìm thấy video trong batch.")
+    if item.get("status") not in ("completed", "skipped") or not item.get("filepath"):
+        raise HTTPException(status_code=409, detail=f"File chưa sẵn sàng (trạng thái: {item.get('status')}).")
+    filepath = item["filepath"]
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=410, detail="File kết quả không còn tồn tại trên máy chủ.")
+    media_type = mimetypes.guess_type(filepath)[0] or "application/octet-stream"
+    return FileResponse(filepath, filename=item.get("filename") or os.path.basename(filepath), media_type=media_type)
+
 
 @app.get("/api/v1/system/status", response_model=SystemStatusResponse, tags=["System"])
 async def check_system_status():
